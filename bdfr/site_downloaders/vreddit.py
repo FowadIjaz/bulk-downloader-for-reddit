@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 
+import logging
 from typing import Optional
 
 from praw.models import Submission
 
-from bdfr.site_authenticator import SiteAuthenticator
 from bdfr.resource import Resource
-from bdfr.site_downloaders.base_downloader import BaseDownloader
+from bdfr.site_authenticator import SiteAuthenticator
+from bdfr.site_downloaders.youtube import Youtube
+
+logger = logging.getLogger(__name__)
 
 
-class Direct(BaseDownloader):
+class VReddit(Youtube):
     def __init__(self, post: Submission):
         super().__init__(post)
 
     def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> 'list[Resource]':
-        return [Resource(self.post, self.post.url)]
+        out = super()._download_video({})
+        return [out]

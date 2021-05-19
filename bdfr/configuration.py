@@ -17,7 +17,6 @@ class Configuration(Namespace):
         self.exclude_id_file = []
         self.limit: Optional[int] = None
         self.link: list[str] = []
-        self.log: Optional[str] = None
         self.max_wait_time = None
         self.multireddit: list[str] = []
         self.no_dupes: bool = False
@@ -33,7 +32,6 @@ class Configuration(Namespace):
         self.submitted: bool = False
         self.subreddit: list[str] = []
         self.time: str = 'all'
-        self.time_format = None
         self.upvoted: bool = False
         self.user: Optional[str] = None
         self.verbose: int = 0

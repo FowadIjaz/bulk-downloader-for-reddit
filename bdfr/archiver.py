@@ -31,7 +31,7 @@ class Archiver(RedditDownloader):
                 logger.debug(f'Attempting to archive submission {submission.id}')
                 self._write_entry(submission)
 
-    def _get_submissions_from_link(self) -> list[list[praw.models.Submission]]:
+    def _get_submissions_from_link(self) -> 'list[list[praw.models.Submission]]':
         supplied_submissions = []
         for sub_id in self.args.link:
             if len(sub_id) == 6:
@@ -42,7 +42,7 @@ class Archiver(RedditDownloader):
                 supplied_submissions.append(self.reddit_instance.submission(url=sub_id))
         return [supplied_submissions]
 
-    def _get_user_data(self) -> list[Iterator]:
+    def _get_user_data(self) -> 'list[Iterator]':
         results = super(Archiver, self)._get_user_data()
         if self.args.user and self.args.all_comments:
             sort = self._determine_sort_function()
@@ -51,7 +51,7 @@ class Archiver(RedditDownloader):
         return results
 
     @staticmethod
-    def _pull_lever_entry_factory(praw_item: (praw.models.Submission, praw.models.Comment)) -> BaseArchiveEntry:
+    def _pull_lever_entry_factory(praw_item: 'tuple[praw.models.Submission, praw.models.Comment]') -> BaseArchiveEntry:
         if isinstance(praw_item, praw.models.Submission):
             return SubmissionArchiveEntry(praw_item)
         elif isinstance(praw_item, praw.models.Comment):
@@ -59,7 +59,7 @@ class Archiver(RedditDownloader):
         else:
             raise ArchiverError(f'Factory failed to classify item of type {type(praw_item).__name__}')
 
-    def _write_entry(self, praw_item: (praw.models.Submission, praw.models.Comment)):
+    def _write_entry(self, praw_item: 'tuple[praw.models.Submission, praw.models.Comment]'):
         archive_entry = self._pull_lever_entry_factory(praw_item)
         if self.args.format == 'json':
             self._write_entry_json(archive_entry)
@@ -89,7 +89,7 @@ class Archiver(RedditDownloader):
     def _write_content_to_disk(self, resource: Resource, content: str):
         file_path = self.file_name_formatter.format_path(resource, self.download_directory)
         file_path.parent.mkdir(exist_ok=True, parents=True)
-        with open(file_path, 'w', encoding="utf-8") as file:
+        with open(file_path, 'w') as file:
             logger.debug(
                 f'Writing entry {resource.source_submission.id} to file in {resource.extension[1:].upper()}'
                 f' format at {file_path}')

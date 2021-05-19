@@ -7,7 +7,7 @@ from typing import Optional
 import bs4
 from praw.models import Submission
 
-from bdfr.exceptions import SiteDownloaderError
+from bdfr.exceptions import NotADownloadableLinkError, SiteDownloaderError
 from bdfr.resource import Resource
 from bdfr.site_authenticator import SiteAuthenticator
 from bdfr.site_downloaders.base_downloader import BaseDownloader
@@ -19,19 +19,19 @@ class Imgur(BaseDownloader):
         super().__init__(post)
         self.raw_data = {}
 
-    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> list[Resource]:
+    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> 'list[Resource]':
         self.raw_data = self._get_data(self.post.url)
 
         out = []
         if 'album_images' in self.raw_data:
             images = self.raw_data['album_images']
             for image in images['images']:
-                out.append(self._compute_image_url(image))
+                out.append(self._download_image(image))
         else:
-            out.append(self._compute_image_url(self.raw_data))
+            out.append(self._download_image(self.raw_data))
         return out
 
-    def _compute_image_url(self, image: dict) -> Resource:
+    def _download_image(self, image: dict) -> Resource:
         image_url = 'https://i.imgur.com/' + image['hash'] + self._validate_extension(image['ext'])
         return Resource(self.post, image_url)
 

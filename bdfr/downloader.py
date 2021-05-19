@@ -14,7 +14,7 @@ from datetime import datetime
 from enum import Enum, auto
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Callable, Iterator
+from typing import Iterator
 
 import appdirs
 import praw
@@ -105,12 +105,6 @@ class RedditDownloader:
                 logger.log(9, 'Wrote default download wait time download to config file')
             self.args.max_wait_time = self.cfg_parser.getint('DEFAULT', 'max_wait_time')
             logger.debug(f'Setting maximum download wait time to {self.args.max_wait_time} seconds')
-        if self.args.time_format is None:
-            option = self.cfg_parser.get('DEFAULT', 'time_format', fallback='ISO')
-            if re.match(r'^[ \'\"]*$', option):
-                option = 'ISO'
-            logger.debug(f'Setting datetime format string to {option}')
-            self.args.time_format = option
         # Update config on disk
         with open(self.config_location, 'w') as file:
             self.cfg_parser.write(file)
@@ -149,7 +143,7 @@ class RedditDownloader:
                 user_agent=socket.gethostname(),
             )
 
-    def _retrieve_reddit_lists(self) -> list[praw.models.ListingGenerator]:
+    def _retrieve_reddit_lists(self) -> 'list[praw.models.ListingGenerator]':
         master_list = []
         master_list.extend(self._get_subreddits())
         logger.log(9, 'Retrieved subreddits')
@@ -196,12 +190,7 @@ class RedditDownloader:
 
     def _create_file_logger(self):
         main_logger = logging.getLogger()
-        if self.args.log is None:
-            log_path = Path(self.config_directory, 'log_output.txt')
-        else:
-            log_path = Path(self.args.log).resolve().expanduser()
-            if not log_path.parent.exists():
-                raise errors.BulkDownloaderException(f'Designated location for logfile does not exist')
+        log_path = Path(self.config_directory, 'log_output.txt')
         backup_count = self.cfg_parser.getint('DEFAULT', 'backup_log_count', fallback=3)
         file_handler = logging.handlers.RotatingFileHandler(
             log_path,
@@ -209,13 +198,7 @@ class RedditDownloader:
             backupCount=backup_count,
         )
         if log_path.exists():
-            try:
-                file_handler.doRollover()
-            except PermissionError as e:
-                logger.critical(
-                    'Cannot rollover logfile, make sure this is the only '
-                    'BDFR process or specify alternate logfile location')
-                raise
+            file_handler.doRollover()
         formatter = logging.Formatter('[%(asctime)s - %(name)s - %(levelname)s] - %(message)s')
         file_handler.setFormatter(formatter)
         file_handler.setLevel(0)
@@ -224,14 +207,14 @@ class RedditDownloader:
 
     @staticmethod
     def _sanitise_subreddit_name(subreddit: str) -> str:
-        pattern = re.compile(r'^(?:https://www\.reddit\.com/)?(?:r/)?(.*?)/?$')
+        pattern = re.compile(r'^(?:https://www\.reddit\.com/)?(?:r/)?(.*?)(?:/)?$')
         match = re.match(pattern, subreddit)
         if not match:
             raise errors.BulkDownloaderException(f'Could not find subreddit name in string {subreddit}')
         return match.group(1)
 
     @staticmethod
-    def _split_args_input(entries: list[str]) -> set[str]:
+    def _split_args_input(entries: 'list[str]') -> 'set[str]':
         all_entries = []
         split_pattern = re.compile(r'[,;]\s?')
         for entry in entries:
@@ -239,17 +222,13 @@ class RedditDownloader:
             all_entries.extend([RedditDownloader._sanitise_subreddit_name(name) for name in results])
         return set(all_entries)
 
-    def _get_subreddits(self) -> list[praw.models.ListingGenerator]:
+    def _get_subreddits(self) -> 'list[praw.models.ListingGenerator]':
         if self.args.subreddit:
             out = []
+            sort_function = self._determine_sort_function()
             for reddit in self._split_args_input(self.args.subreddit):
                 try:
                     reddit = self.reddit_instance.subreddit(reddit)
-                    try:
-                        self._check_subreddit_status(reddit)
-                    except errors.BulkDownloaderException as e:
-                        logger.error(e)
-                        continue
                     if self.args.search:
                         out.append(reddit.search(
                             self.args.search,
@@ -277,7 +256,7 @@ class RedditDownloader:
                 self.args.user = None
                 logger.warning('To use "me" as a user, an authenticated Reddit instance must be used')
 
-    def _get_submissions_from_link(self) -> list[list[praw.models.Submission]]:
+    def _get_submissions_from_link(self) -> 'list[list[praw.models.Submission]]':
         supplied_submissions = []
         for sub_id in self.args.link:
             if len(sub_id) == 6:
@@ -286,7 +265,7 @@ class RedditDownloader:
                 supplied_submissions.append(self.reddit_instance.submission(url=sub_id))
         return [supplied_submissions]
 
-    def _determine_sort_function(self) -> Callable:
+    def _determine_sort_function(self):
         if self.sort_filter is RedditTypes.SortType.NEW:
             sort_function = praw.models.Subreddit.new
         elif self.sort_filter is RedditTypes.SortType.RISING:
@@ -299,7 +278,7 @@ class RedditDownloader:
             sort_function = praw.models.Subreddit.hot
         return sort_function
 
-    def _get_multireddits(self) -> list[Iterator]:
+    def _get_multireddits(self) -> 'list[Iterator]':
         if self.args.multireddit:
             out = []
             for multi in self._split_args_input(self.args.multireddit):
@@ -322,13 +301,11 @@ class RedditDownloader:
         else:
             return sort_function(reddit_source, limit=self.args.limit)
 
-    def _get_user_data(self) -> list[Iterator]:
+    def _get_user_data(self) -> 'list[Iterator]':
         if any([self.args.submitted, self.args.upvoted, self.args.saved]):
             if self.args.user:
-                try:
-                    self._check_user_existence(self.args.user)
-                except errors.BulkDownloaderException as e:
-                    logger.error(e)
+                if not self._check_user_existence(self.args.user):
+                    logger.error(f'User {self.args.user} does not exist')
                     return []
                 generators = []
                 if self.args.submitted:
@@ -352,19 +329,17 @@ class RedditDownloader:
         else:
             return []
 
-    def _check_user_existence(self, name: str):
+    def _check_user_existence(self, name: str) -> bool:
         user = self.reddit_instance.redditor(name=name)
         try:
-            if user.id:
-                return
+            if not user.id:
+                return False
         except prawcore.exceptions.NotFound:
-            raise errors.BulkDownloaderException(f'Could not find user {name}')
-        except AttributeError:
-            if hasattr(user, 'is_suspended'):
-                raise errors.BulkDownloaderException(f'User {name} is banned')
+            return False
+        return True
 
     def _create_file_name_formatter(self) -> FileNameFormatter:
-        return FileNameFormatter(self.args.file_scheme, self.args.folder_scheme, self.args.time_format)
+        return FileNameFormatter(self.args.file_scheme, self.args.folder_scheme)
 
     def _create_time_filter(self) -> RedditTypes.TimeType:
         try:
@@ -400,6 +375,9 @@ class RedditDownloader:
         if not isinstance(submission, praw.models.Submission):
             logger.warning(f'{submission.id} is not a submission')
             return
+        if not self.download_filter.check_url(submission.url):
+            logger.debug(f'Download filter removed submission {submission.id} with URL {submission.url}')
+            return
         try:
             downloader_class = DownloadFactory.pull_lever(submission.url)
             downloader = downloader_class(submission)
@@ -416,14 +394,12 @@ class RedditDownloader:
         for destination, res in self.file_name_formatter.format_resource_paths(content, self.download_directory):
             if destination.exists():
                 logger.debug(f'File {destination} already exists, continuing')
-            elif not self.download_filter.check_resource(res):
-                logger.debug(f'Download filter removed {submission.id} with URL {submission.url}')
             else:
                 try:
                     res.download(self.args.max_wait_time)
                 except errors.BulkDownloaderException as e:
-                    logger.error(f'Failed to download resource {res.url} in submission {submission.id} '
-                                 f'with downloader {downloader_class.__name__}: {e}')
+                    logger.error(
+                        f'Failed to download resource {res.url} with downloader {downloader_class.__name__}: {e}')
                     return
                 resource_hash = res.hash.hexdigest()
                 destination.parent.mkdir(parents=True, exist_ok=True)
@@ -445,7 +421,7 @@ class RedditDownloader:
                 logger.info(f'Downloaded submission {submission.id} from {submission.subreddit.display_name}')
 
     @staticmethod
-    def scan_existing_files(directory: Path) -> dict[str, Path]:
+    def scan_existing_files(directory: Path) -> 'dict[str, Path]':
         files = []
         for (dirpath, dirnames, filenames) in os.walk(directory):
             files.extend([Path(dirpath, file) for file in filenames])
@@ -458,7 +434,7 @@ class RedditDownloader:
         hash_list = {res[1]: res[0] for res in results}
         return hash_list
 
-    def _read_excluded_ids(self) -> set[str]:
+    def _read_excluded_ids(self) -> 'set[str]':
         out = []
         out.extend(self.args.exclude_id)
         for id_file in self.args.exclude_id_file:
@@ -470,14 +446,3 @@ class RedditDownloader:
                 for line in file:
                     out.append(line.strip())
         return set(out)
-
-    @staticmethod
-    def _check_subreddit_status(subreddit: praw.models.Subreddit):
-        if subreddit.display_name == 'all':
-            return
-        try:
-            assert subreddit.id
-        except prawcore.NotFound:
-            raise errors.BulkDownloaderException(f'Source {subreddit.display_name} does not exist or cannot be found')
-        except prawcore.Forbidden:
-            raise errors.BulkDownloaderException(f'Source {subreddit.display_name} is private and cannot be scraped')

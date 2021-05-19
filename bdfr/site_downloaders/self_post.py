@@ -16,7 +16,7 @@ class SelfPost(BaseDownloader):
     def __init__(self, post: Submission):
         super().__init__(post)
 
-    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> list[Resource]:
+    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> 'list[Resource]':
         out = Resource(self.post, self.post.url, '.txt')
         out.content = self.export_to_string().encode('utf-8')
         out.create_hash()

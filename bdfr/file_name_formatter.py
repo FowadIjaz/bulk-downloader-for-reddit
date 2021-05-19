@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # coding=utf-8
-import datetime
+
 import logging
 import platform
 import re
@@ -26,18 +26,18 @@ class FileNameFormatter:
         'upvotes',
     )
 
-    def __init__(self, file_format_string: str, directory_format_string: str, time_format_string: str):
+    def __init__(self, file_format_string: str, directory_format_string: str):
         if not self.validate_string(file_format_string):
             raise BulkDownloaderException(f'"{file_format_string}" is not a valid format string')
         self.file_format_string = file_format_string
         self.directory_format_string: list[str] = directory_format_string.split('/')
-        self.time_format_string = time_format_string
 
-    def _format_name(self, submission: (Comment, Submission), format_string: str) -> str:
+    @staticmethod
+    def _format_name(submission: (Comment, Submission), format_string: str) -> str:
         if isinstance(submission, Submission):
-            attributes = self._generate_name_dict_from_submission(submission)
+            attributes = FileNameFormatter._generate_name_dict_from_submission(submission)
         elif isinstance(submission, Comment):
-            attributes = self._generate_name_dict_from_comment(submission)
+            attributes = FileNameFormatter._generate_name_dict_from_comment(submission)
         else:
             raise BulkDownloaderException(f'Cannot name object {type(submission).__name__}')
         result = format_string
@@ -65,7 +65,8 @@ class FileNameFormatter:
                 in_string = in_string.replace(match, converted_match)
         return in_string
 
-    def _generate_name_dict_from_submission(self, submission: Submission) -> dict:
+    @staticmethod
+    def _generate_name_dict_from_submission(submission: Submission) -> dict:
         submission_attributes = {
             'title': submission.title,
             'subreddit': submission.subreddit.display_name,
@@ -73,18 +74,12 @@ class FileNameFormatter:
             'postid': submission.id,
             'upvotes': submission.score,
             'flair': submission.link_flair_text,
-            'date': self._convert_timestamp(submission.created_utc),
+            'date': submission.created_utc
         }
         return submission_attributes
 
-    def _convert_timestamp(self, timestamp: float) -> str:
-        input_time = datetime.datetime.fromtimestamp(timestamp)
-        if self.time_format_string.upper().strip() == 'ISO':
-            return input_time.isoformat()
-        else:
-            return input_time.strftime(self.time_format_string)
-
-    def _generate_name_dict_from_comment(self, comment: Comment) -> dict:
+    @staticmethod
+    def _generate_name_dict_from_comment(comment: Comment) -> dict:
         comment_attributes = {
             'title': comment.submission.title,
             'subreddit': comment.subreddit.display_name,
@@ -92,7 +87,7 @@ class FileNameFormatter:
             'postid': comment.id,
             'upvotes': comment.score,
             'flair': '',
-            'date': self._convert_timestamp(comment.created_utc),
+            'date': comment.created_utc,
         }
         return comment_attributes
 
@@ -133,9 +128,9 @@ class FileNameFormatter:
 
     def format_resource_paths(
             self,
-            resources: list[Resource],
+            resources: 'list[Resource]',
             destination_directory: Path,
-    ) -> list[tuple[Path, Resource]]:
+    ) -> 'list[tuple[Path, Resource]]':
         out = []
         if len(resources) == 1:
             try:
@@ -160,8 +155,9 @@ class FileNameFormatter:
         result = any([f'{{{key}}}' in test_string.lower() for key in FileNameFormatter.key_terms])
         if result:
             if 'POSTID' not in test_string:
-                logger.warning('Some files might not be downloaded due to name conflicts as filenames are'
-                               ' not guaranteed to be be unique without {POSTID}')
+                logger.warning(
+                    'Some files might not be downloaded due to name conflicts as filenames are'
+                    ' not guaranteed to be be unique without {POSTID}')
             return True
         else:
             return False

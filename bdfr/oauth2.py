@@ -18,14 +18,14 @@ logger = logging.getLogger(__name__)
 
 class OAuth2Authenticator:
 
-    def __init__(self, wanted_scopes: set[str], client_id: str, client_secret: str):
+    def __init__(self, wanted_scopes: 'set[str]', client_id: str, client_secret: str):
         self._check_scopes(wanted_scopes)
         self.scopes = wanted_scopes
         self.client_id = client_id
         self.client_secret = client_secret
 
     @staticmethod
-    def _check_scopes(wanted_scopes: set[str]):
+    def _check_scopes(wanted_scopes: 'set[str]'):
         response = requests.get('https://www.reddit.com/api/v1/scopes.json',
                                 headers={'User-Agent': 'fetch-scopes test'})
         known_scopes = [scope for scope, data in response.json().items()]
@@ -35,7 +35,7 @@ class OAuth2Authenticator:
                 raise BulkDownloaderException(f'Scope {scope} is not known to reddit')
 
     @staticmethod
-    def split_scopes(scopes: str) -> set[str]:
+    def split_scopes(scopes: str) -> 'set[str]':
         scopes = re.split(r'[,: ]+', scopes)
         return set(scopes)
 
@@ -70,8 +70,8 @@ class OAuth2Authenticator:
     def receive_connection() -> socket.socket:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.bind(('0.0.0.0', 7634))
-        logger.log(9, 'Server listening on 0.0.0.0:7634')
+        server.bind(('localhost', 7634))
+        logger.log(9, 'Server listening on localhost:7634')
 
         server.listen(1)
         client = server.accept()[0]
@@ -81,7 +81,7 @@ class OAuth2Authenticator:
         return client
 
     @staticmethod
-    def send_message(client: socket.socket, message: str = ''):
+    def send_message(client: socket.socket, message: str):
         client.send(f'HTTP/1.1 200 OK\r\n\r\n{message}'.encode('utf-8'))
         client.close()
 

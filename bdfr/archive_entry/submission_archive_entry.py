@@ -38,7 +38,7 @@ class SubmissionArchiveEntry(BaseArchiveEntry):
             'created_utc': self.source.created_utc,
         }
 
-    def _get_comments(self) -> list[dict]:
+    def _get_comments(self) -> 'list[dict]':
         logger.debug(f'Retrieving full comment tree for submission {self.source.id}')
         comments = []
         self.source.comments.replace_more(0)

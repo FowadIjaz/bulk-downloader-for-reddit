@@ -8,7 +8,7 @@ from typing import Optional
 import requests
 from praw.models import Submission
 
-from bdfr.exceptions import ResourceNotFound, SiteDownloaderError
+from bdfr.exceptions import ResourceNotFound
 from bdfr.resource import Resource
 from bdfr.site_authenticator import SiteAuthenticator
 
@@ -21,17 +21,13 @@ class BaseDownloader(ABC):
         self.typical_extension = typical_extension
 
     @abstractmethod
-    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> list[Resource]:
+    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> 'list[Resource]':
         """Return list of all un-downloaded Resources from submission"""
         raise NotImplementedError
 
     @staticmethod
     def retrieve_url(url: str, cookies: dict = None, headers: dict = None) -> requests.Response:
-        try:
-            res = requests.get(url, cookies=cookies, headers=headers)
-        except requests.exceptions.RequestException as e:
-            logger.exception(e)
-            raise SiteDownloaderError(f'Failed to get page {url}')
+        res = requests.get(url, cookies=cookies, headers=headers)
         if res.status_code != 200:
             raise ResourceNotFound(f'Server responded with {res.status_code} to {url}')
         return res

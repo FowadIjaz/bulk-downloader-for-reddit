@@ -19,14 +19,14 @@ class Gallery(BaseDownloader):
     def __init__(self, post: Submission):
         super().__init__(post)
 
-    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> list[Resource]:
+    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> 'list[Resource]':
         image_urls = self._get_links(self.post.url)
         if not image_urls:
             raise SiteDownloaderError('No images found in Reddit gallery')
         return [Resource(self.post, url) for url in image_urls]
 
     @staticmethod
-    def _get_links(url: str) -> list[str]:
+    def _get_links(url: str) -> 'list[str]':
         resource_headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
                           ' Chrome/67.0.3396.87 Safari/537.36 OPR/54.0.2952.64',

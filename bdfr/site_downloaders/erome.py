@@ -19,7 +19,7 @@ class Erome(BaseDownloader):
     def __init__(self, post: Submission):
         super().__init__(post)
 
-    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> list[Resource]:
+    def find_resources(self, authenticator: Optional[SiteAuthenticator] = None) -> 'list[Resource]':
         links = self._get_links(self.post.url)
 
         if not links:
@@ -33,7 +33,7 @@ class Erome(BaseDownloader):
         return out
 
     @staticmethod
-    def _get_links(url: str) -> set[str]:
+    def _get_links(url: str) -> 'set[str]':
         page = Erome.retrieve_url(url)
         soup = bs4.BeautifulSoup(page.text, 'html.parser')
         front_images = soup.find_all('img', attrs={'class': 'lasyload'})
